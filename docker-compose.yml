@@ -1,0 +1,18 @@
+# Optional bonus per the assignment brief ("advantage if multiple
+# components are orchestrated using docker-compose.yml"). Ollama itself
+# is intentionally NOT a service here — it runs on the host machine
+# (see README) — this just standardizes how the app container is
+# built and run, instead of typing the long `docker run` command by hand.
+
+services:
+  app:
+    build: .
+    ports:
+      - "8501:8501"
+    environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+    extra_hosts:
+      # host.docker.internal works natively on Docker Desktop (Windows/Mac).
+      # This line makes it also work on Linux Docker hosts, for graders
+      # running elsewhere.
+      - "host.docker.internal:host-gateway"

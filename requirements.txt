@@ -1,0 +1,26 @@
+# === Modernized for Python 3.14.7 on Windows ===
+# No version pins that force source builds. Chroma/FAISS removed —
+# both currently have unresolved Python 3.14 wheel gaps (onnxruntime/
+# hnswlib for Chroma, no confirmed cp314 Windows wheel yet for FAISS).
+# Replaced with a small NumPy-based local vector store (see vector_store.py).
+
+langgraph>=0.6
+langchain>=0.4
+langchain-community>=0.4
+langchain-ollama>=0.4
+
+# Embeddings + reranking — CPU is sufficient for this workload; Ollama
+# handles the actual LLM generation separately, outside torch entirely.
+sentence-transformers>=4.0
+torch>=2.9          # installs CPU build by default on Windows; that's fine here
+
+# Local vector search — NumPy only, no C-extension vector DB
+numpy>=2.2
+
+pypdf>=5.1                 # pure Python, no build issues
+pandas>=2.3.3               # 2.3.3+ is the first version with Windows py3.14 wheels
+python-dotenv>=1.0
+
+# === Later stages will add ===
+# streamlit          (Stage 5 - UI)
+streamlit>=1.38
