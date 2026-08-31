@@ -14,7 +14,7 @@
 ## Latency by Intent Type
 | Intent | Count | Mean (s) | Median (s) | P95 (s) |
 |---|---|---|---|---|
-| lookup | 36 | 36.67 | 29.97 | 72.22 |
+| lookup | 36 | 36.67 | 29.97 | 72.22 |s
 | draft_new | 8 | 131.58 | 134.81 | 140.69 |
 | draft_adapt | 8 | 31.03 | 31.37 | 36.25 |
 | compare | 8 | 60.80 | 59.66 | 69.08 |
