@@ -161,6 +161,35 @@ and broken down by intent type, plus the bottleneck analysis below.
 Mean latency **51.8s**, median **33.6s**, P95 **136.6s**, min 19.0s, max
 144.4s. Full breakdown by intent type is in `load_test_results.md`.
 
+### Secondary evaluation — LLM & prompt behavior
+
+`eval_set.py` above tests routing accuracy. `llm_eval_set.py` tests a
+different, complementary thing: whether each prompt actually *behaves*
+correctly once routed — not just "did it run," but "did it refuse when
+it should, generalize past exact training phrasing, and stay
+structurally correct."
+
+8 cases, each with an automated check function:
+- **Refusal on missing info** — does the answer admit the context doesn't
+  cover it, instead of inventing a plausible-sounding answer?
+- **Paraphrase robustness** — do reworded / typo'd / casually-phrased
+  versions of the original eval questions still route and behave
+  correctly (not just exact phrasings the original 15 happened to use)?
+- **Structural correctness** — for `compare` queries, did all 3 fixed
+  dimensions actually produce a finding (confirms the `Send` fan-out
+  reliably completes, not just that it started)?
+- **Grounded citation** — is the answer traceable back to an actually
+  retrieved source, not free-floating text?
+
+Run with:
+```
+python run_llm_eval.py
+```
+Produces `llm_eval_results.md` with a pass/fail table per check plus
+full answer text.
+
+**Results:** *(fill in after running)*
+
 **Bottleneck:** local LLM inference (Ollama) dominates latency in every
 request. `draft_new` is the slowest intent (108-146s) since it's one
 long, uninterrupted generation with no retrieval shortcuts. `lookup` is
@@ -220,7 +249,36 @@ python run_eval.py       # writes eval_results.md
 python load_test.py 60   # writes load_test_results.md
 ```
 
-## 7. Known Limitations
+## 7. Additional Features (Beyond Assignment Scope)
+
+Built after the core submission, as extra usability layers on top of
+the required agent — none of these change or risk the graded pipeline
+above.
+
+**Regenerate from selected sources.** After any query that retrieves
+sources, they appear with checkboxes (pre-checked). You can adjust the
+selection and click "Regenerate using selected sources only" to redo
+the answer from exactly the sources you choose, instead of the agent's
+automatic selection.
+
+**Upload your own SEC filing.** A separate section lets you upload a
+PDF at runtime — it's chunked and embedded on the fly (in memory only,
+per-session, never written to disk or added to the main corpus), then
+you can ask questions or draft from it, using the same grounded-answer
+and drafting logic as the main pipeline (`uploaded_doc.py`).
+
+*Bug found and fixed during testing:* the upload feature initially used
+`pypdf` for extraction and no reranking. Testing with a real
+multi-column resume PDF revealed two problems: (1) `pypdf` reads text
+in raw stream order, which interleaves left/right column text
+mid-sentence on multi-column layouts, and (2) plain cosine-similarity
+search without reranking wasn't precise enough even on the correctly-
+extracted text, missing the right chunk on an 11-chunk document. Fixed
+by switching to `pdfplumber` (layout-aware extraction) and adding the
+same retrieve-then-rerank pattern already used in the main RAG
+subgraph. Confirmed fixed by retesting the same document and question.
+
+## 8. Known Limitations
 - Retrieval quality is bounded by corpus composition — most filings are
   short 8-K items rather than narrative 10-K risk sections, so some
   legitimate "not found" answers reflect the dataset, not a bug.

@@ -70,7 +70,15 @@ def embed_and_index(uploaded_file, filename: str) -> dict:
 
 
 def search(index: dict, query: str, k: int = 4) -> list[dict]:
-    """Search within ONE uploaded document's temporary index."""
+    """Search within ONE uploaded document's temporary index.
+
+    Two-stage, same as the main RAG subgraph: broad cosine-similarity
+    retrieval first, THEN rerank with a cross-encoder for precision.
+    Plain cosine similarity alone is not precise enough — especially
+    on short documents, where the right chunk can rank just outside a
+    narrow top-k cutoff. For a small uploaded doc, this effectively
+    considers nearly the whole document before narrowing down.
+    """
     if not index["chunks"]:
         return []
 
@@ -82,13 +90,22 @@ def search(index: dict, query: str, k: int = 4) -> list[dict]:
     matrix_norms = matrix / (np.linalg.norm(matrix, axis=1, keepdims=True) + 1e-10)
     scores = matrix_norms @ query_norm
 
-    top_indices = np.argsort(scores)[::-1][:k]
+    retrieve_n = min(len(index["chunks"]), max(k * 3, 10))
+    top_indices = np.argsort(scores)[::-1][:retrieve_n]
+    candidates = [(idx, index["chunks"][idx]) for idx in top_indices]
+
+    from rag_subgraph import _get_reranker  # reuse the same cached model, don't load twice
+    reranker = _get_reranker()
+    pairs = [(query, text) for _, text in candidates]
+    rerank_scores = reranker.predict(pairs)
+
+    ranked = sorted(zip(candidates, rerank_scores), key=lambda x: x[1], reverse=True)[:k]
 
     results = []
-    for idx in top_indices:
+    for (idx, text), score in ranked:
         results.append({
-            "text": index["chunks"][idx],
-            "score": float(scores[idx]),
+            "text": text,
+            "score": float(score),
             "company": "Uploaded document",
             "form_type": index["filename"],
             "filing_date": "",
