@@ -23,13 +23,20 @@ from peer_selector import find_companies_in_text
 
 DRAFT_NEW_PROMPT = """You are a legal/compliance drafting assistant helping write an SEC disclosure section.
 
-Write a new, professional disclosure section addressing the following request. Follow standard SEC disclosure conventions (clear, factual, hedged language for forward-looking statements). Use "[Your Company]" as a placeholder for the company name since none was given.
+Write a new, professional disclosure section addressing the following request. 
+Follow standard SEC disclosure conventions (clear, factual, hedged language for forward-looking statements). 
+
+Use "[Your Company]" as a placeholder for the company name since none was given.
 
 Request: {query}
 
 Draft:"""
 
-DRAFT_ADAPT_PROMPT = """You are a legal/compliance drafting assistant. Below is disclosure language from a peer company's SEC filing. Adapt and rewrite it as a new disclosure section for a different company, based on the user's request. Keep the professional SEC disclosure tone and structure, but do not simply copy verbatim — reword it and use "[Your Company]" as a placeholder for the company name.
+DRAFT_ADAPT_PROMPT = """You are a legal/compliance drafting assistant. Below is disclosure language from a peer 
+company's SEC filing. 
+Adapt and rewrite it as a new disclosure section for a different company, based on the user's request. 
+Keep the professional SEC disclosure tone and structure, but do not simply copy verbatim — reword it 
+and use "[Your Company]" as a placeholder for the company name.
 
 Peer company reference text ({peer_company}):
 {peer_text}
@@ -37,6 +44,19 @@ Peer company reference text ({peer_company}):
 User's request: {query}
 
 Adapted draft:"""
+
+DRAFT_FROM_SELECTED_PROMPT = """You are a legal/compliance drafting assistant. 
+Below are one or more excerpts the user hand-picked from SEC filings as reference material.
+ Use ONLY these excerpts as your source — draft a new disclosure section based on the user's instruction, 
+ in professional SEC disclosure tone. Reword rather than copy verbatim, and use "[Your Company]" as a placeholder 
+ for the company name.
+
+Selected reference excerpts:
+{snippets}
+
+User's instruction: {instruction}
+
+Draft:"""
 
 
 def _find_mentioned_company(query: str) -> str | None:
@@ -97,3 +117,20 @@ def drafter_node(state: AgentState) -> AgentState:
         "draft_output": draft,
         "final_answer": draft,
     }
+
+
+def draft_from_selected(snippets: list[dict], instruction: str) -> str:
+    """User-driven drafting: instead of the agent automatically deciding
+    what to retrieve, the user has already picked specific snippets from
+    a search (via the UI's checkbox selection) and this drafts using
+    ONLY those, ignoring anything else in the corpus."""
+    llm = get_llm(temperature=0.4)
+
+    snippet_text = "\n\n".join(
+        f"[{s['company']} | {s['form_type']}]\n{s['text']}"
+        for s in snippets
+    )
+
+    prompt = DRAFT_FROM_SELECTED_PROMPT.format(snippets=snippet_text, instruction=instruction)
+    response = llm.invoke(prompt)
+    return response.content.strip()
