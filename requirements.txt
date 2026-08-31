@@ -18,6 +18,7 @@ torch>=2.9          # installs CPU build by default on Windows; that's fine here
 numpy>=2.2
 
 pypdf>=5.1                 # pure Python, no build issues
+pdfplumber>=0.11            # layout-aware PDF extraction, used for user-uploaded docs (handles multi-column better than pypdf)
 pandas>=2.3.3               # 2.3.3+ is the first version with Windows py3.14 wheels
 python-dotenv>=1.0
 

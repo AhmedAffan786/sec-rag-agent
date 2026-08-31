@@ -10,7 +10,7 @@ temporary, per-session index, not persisted anywhere.
 
 import io
 import numpy as np
-from pypdf import PdfReader
+import pdfplumber
 from sentence_transformers import SentenceTransformer
 
 import config
@@ -31,9 +31,14 @@ def _get_embedding_model():
 
 
 def extract_text(uploaded_file) -> str:
-    """uploaded_file is a Streamlit UploadedFile object (file-like)."""
-    reader = PdfReader(io.BytesIO(uploaded_file.getvalue()))
-    return "\n".join(page.extract_text() or "" for page in reader.pages)
+    """uploaded_file is a Streamlit UploadedFile object (file-like).
+    Uses pdfplumber with layout=True, which respects visual column
+    order much better than a raw stream-order extractor — important
+    for multi-column documents (resumes, some academic papers) where
+    naive extraction interleaves left/right column text mid-sentence."""
+    with pdfplumber.open(io.BytesIO(uploaded_file.getvalue())) as pdf:
+        pages_text = [page.extract_text(layout=True) or "" for page in pdf.pages]
+    return "\n".join(pages_text)
 
 
 def chunk_text(text: str) -> list[str]:
