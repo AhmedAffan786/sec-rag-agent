@@ -14,8 +14,10 @@ langchain-ollama>=0.4
 sentence-transformers>=4.0
 torch>=2.9          # installs CPU build by default on Windows; that's fine here
 
-# Local vector search — NumPy only, no C-extension vector DB
+# Local vector search — FAISS (unfiltered/general search) + NumPy
+# (company-filtered search, kept for the exact-match correctness fix)
 numpy>=2.2
+faiss-cpu>=1.15
 
 pypdf>=5.1                 # pure Python, no build issues
 pdfplumber>=0.11            # layout-aware PDF extraction, used for user-uploaded docs (handles multi-column better than pypdf)
