@@ -29,7 +29,7 @@ def load_filing_index() -> list[dict]:
     """Deduplicate the per-chunk metadata down to one entry per filing
     (per source_file), since ingest.py stores metadata redundantly on
     every chunk of the same PDF."""
-    _, metadatas = vector_store.load()
+    _, _, metadatas = vector_store.load()
 
     seen_files = set()
     index = []

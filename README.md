@@ -124,11 +124,18 @@ Manager's simple routing decision specifically.
 
 **Embeddings:** `BAAI/bge-small-en-v1.5` (local, CPU, sentence-transformers).
 **Reranker:** `cross-encoder/ms-marco-MiniLM-L-6-v2` (local, CPU).
-**Vector store:** a small custom NumPy-based store (cosine similarity),
-not Chroma/FAISS — both currently have unresolved Python 3.14 wheel
-gaps on Windows (`onnxruntime`/`hnswlib` for Chroma; no confirmed cp314
-wheel for FAISS), and a brute-force NumPy search is more than fast
-enough for this corpus size (~700 chunks).
+**Vector store:** FAISS (`IndexFlatIP`, exact cosine-similarity search)
+for general/unfiltered queries, with a small NumPy brute-force search
+kept for company-filtered queries (used by Drafter's adapt mode and the
+Comparator, where the searchable subset is already tiny — a handful of
+chunks per company — so FAISS adds no benefit there).
+
+*Trade-off note:* earlier in development, Chroma and FAISS both had
+unresolved Python 3.14 Windows wheel gaps, so the vector store started
+as pure NumPy brute-force search — genuinely fine at this corpus size
+(~700 chunks). `faiss-cpu` has since shipped a Python-3.14-compatible
+wheel, so the unfiltered search path was migrated to FAISS; the
+NumPy path was kept where it already worked well.
 
 ## 5. Evaluation & Performance
 
